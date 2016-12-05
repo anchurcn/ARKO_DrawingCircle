@@ -12,68 +12,69 @@
 #$s4 - rozmiar całego obrazka
 #$s5 - promień okręgu
 
-#Wyświetl tekst
+#Wyświetlam komunikat
 	li $v0, 4
 	la $a0, tekst
 	syscall
 	
-#Wczytaj promień okręgu
+#Wczytuje promień okręgu
 	li $v0, 5
 	syscall
 	move $s5, $v0
 	
-#Oblicz rozmiar obrazka - na podstawie promienia
-	add $s0, $v0, $v0	#Podwaja promień i zapisuje w rejestrze s0
+#Obliczam rozmiar obrazka 
+	add $s0, $v0, $v0	#Podwajam promień i zapisuje do $s0
 	addi $s0, $s0, 1	#Dodaje 1 do średnicy (środkowy piksel)
 	
-#Policz nadmiar - zaokrągla liczbę pikseli do 4 (w górę)
-	mul $s1, $s0, 3		#Ilość pikseli w szerokości obrazka
+#Liczę nadmiar - zaokrąglam liczbę pikseli do 4 (w górę)
+	mul $s1, $s0, 3		#Ilość pikseli w szerokości obrazka (3 piksele na jeden bit)
 	subi $s1, $s1, 1	#Odejmuje 1
-	andi $s1, $s1, 0xfffffffc	#Maska bitowa - liczba całkowita powstała przez podzielenie $s1 przez 4
-	addi $s1, $s1, 4	#Dodaj 4 - zaokrąglenie
-#Wyświetl z nadmiarem
+	andi $s1, $s1, 0xfffffffc	#Maska bitowa - liczba całkowita powstała przez podzielenie $s1 przez 4 inaczej AND (*00) i $s1
+	addi $s1, $s1, 4	#Dodaje 4 aby zaokrąglic do 4 
+	
+#Wyświetlam z nadmiarem
 	li $v0, 1
 	add $a0, $s1, $zero
 	syscall
-#Przygotuj nagłówek
-	la $t0, header		#Pobiera adres do bufora nagłówka
-	li $t1, 0x42		#Przygotuj pierwszy znak (z dokumentacji BMP)
-	sb $t1, 2($t0)		#Zapisuje pierwszy znak
-	li $t1, 0x4D		#Przygotuj drugi znak (z dokumentacji BMP)
-	sb $t1, 3($t0)		#Zapisuje drugi znak
+#Przygotowuje nagłówek
+	la $t0, header		#Pobieram adres do bufora nagłówka, teraz w t0 jest 56 bitow
+	li $t1, 0x42		#Przygotowuje pierwszy znak (wynikajace z dokumentacji BMP)
+	sb $t1, 2($t0)		#Zapisuje
+	li $t1, 0x4D		#drugi znak 
+	sb $t1, 3($t0)		
 	
 #Alokacja pamięci na obrazek i zapis nagłówka
-	mul $t1, $s0, $s1	#Ile pikseli potrzeba na cały obraz - (wysokość) x (szerokość z nadmiarem)
-	add $s4, $t1, $zero	#Zapamiętaj wartość - na później
+	mul $t1, $s0, $s1	#piksele potrzebne na cały obraz - (wysokość) x (szerokość z nadmiarem)
+	add $s4, $t1, $zero	#Zapamiętaj wartość na później
 	
-	li $v0, 9		#Numer syscall alokacji
-	add $a0, $t1, $zero	#Skopiuj ilość bajtów do alokacji (rozmiar)
+	li $v0, 9		#Alokacja ilosci bajtow  (rozmiar)
+	add $a0, $t1, $zero	
 	syscall
-	add $s2, $v0, $zero	#Zapiamiętaj adres do zaalokowanej pamięci
+	add $s2, $v0, $zero	#Zapiamiętaj adres do zaalokowanej pamięci w $s2
 	
-	addi $t1, $t1, 54	#Rozmiar całego pliku
+	addi $t1, $t1, 54	#Rozmiar całego pliku czyli rozmiar obrazka i naglowek w $t1
 	sw $t1, 4($t0)		#Wpisz rozmiar całego pliku do nagłówka
 	
 	li $t1, 54		#54 - offset danych (rozmiar nagłówka)
-	sw $t1, 12($t0)		#Zapisz offset
+	sw $t1, 12($t0)		
 	li $t1, 40		#40 - długość do końca nagłówka
-	sw $t1, 16($t0)		#Zapisz powyższą wartość
+	sw $t1, 16($t0)		
 	add $t1, $s0, $zero	#Skopiuj szerokość/wysokość obrazka
-	sw $t1, 20($t0)		#Zapisz szerokość obrazka
-	sw $t1, 24($t0)		#Zapisz wysokość obrazka
+	sw $t1, 20($t0)		#szerokość
+	sw $t1, 24($t0)		#wysokość
 	li $t1, 1		#1 - ilość wartstw kolorów
-	sw $t1, 28($t0)		#Zapisz ilość warstw
+	sw $t1, 28($t0)		
 	li $t1, 24		#24 - liczba bitów na piksel (3 kolory po 8 bitów każdy)
-	sb $t1, 30($t0)		#Zapisz liczbę bitów na piksel
+	sb $t1, 30($t0)		
 #Otwórz plik do zapisu
-	li $v0, 13		#Numer syscall otwarcia pliku
+	li $v0, 13		#Otwieranie pliku
 	la $a0, nazwa_pliku	#Wczytanie adresu na nazwę pliku
 	li $a1, 1		#1 - bo plik do odczytu
 	li $a2, 0		#0 - flaga
 	syscall
-	add $s3, $v0, $zero	#Zapamiętanie wskaźnika na plik w $s3
+	add $s3, $v0, $zero	#Zapamiętanie wskaźnika na plik w $s3 
 #Zapisz nagłówek
-	li $v0, 15		#Numer syscall zapisu do pliku
+	li $v0, 15		
 	add $a0, $s3, $zero	#Skopowianie wskaźnika na plik
 	la $a1, header+2	#Początek zapisywanych danych
 	li $a2, 54		#Ilość bitów do zapisania (rozmiar nagłówka)
@@ -99,7 +100,7 @@ petla:
 	sub $t7, $t0, $t3	# x0 - x
 	sub $t8, $t1, $t4	# y0 - y
 	mul $t7, $t7, 3		# *= 3 (bo po 3 piksele na jeden punkt)
-	mul $t8, $t8, $s1	# *= wielkość_wiersza (bo przesunięcie o ileśtam linii w dół
+	mul $t8, $t8, $s1	# *= wielkość_wiersza (bo przesunięcie o ileśtam linii w dół)
 	add $t7, $t7, $t8	# Obecna pozycja piksela
 	add $t7, $t7, $s2	# Pozycja piksela względem początku pliku (dodaję do adresu początku pliku)
 	li $v0, 0xff		#Kolor na czarny
@@ -108,7 +109,7 @@ petla:
 	sb $v0, 2($t7)		#Kolor czerwony
 	#Ustaw kolor piksela 2
 	sub $t7, $t0, $t3 #x0 - x
-	add $t8, $t1, $t4 #y0 - y
+	add $t8, $t1, $t4 #y0 + y
 	mul $t7, $t7, 3 # *= 3
 	mul $t8, $t8, $s1 # *= wielkość_wiersza
 	add $t7, $t7, $t8
@@ -118,7 +119,7 @@ petla:
 	sb $v0, 1($t7)
 	sb $v0, 2($t7)
 	#Ustaw kolor piksela 3
-	add $t7, $t0, $t3 #x0 - x
+	add $t7, $t0, $t3 #x0 + x
 	sub $t8, $t1, $t4 #y0 - y
 	mul $t7, $t7, 3 # *= 3
 	mul $t8, $t8, $s1 # *= wielkość_wiersza
@@ -129,8 +130,8 @@ petla:
 	sb $v0, 1($t7)
 	sb $v0, 2($t7)
 	#Ustaw kolor piksela 4
-	add $t7, $t0, $t3 #x0 - x
-	add $t8, $t1, $t4 #y0 - y
+	add $t7, $t0, $t3 #x0 + x
+	add $t8, $t1, $t4 #y0 + y
 	mul $t7, $t7, 3 # *= 3
 	mul $t8, $t8, $s1 # *= wielkość_wiersza
 	add $t7, $t7, $t8
@@ -151,8 +152,8 @@ petla:
 	sb $v0, 1($t7)
 	sb $v0, 2($t7)
 	#Ustaw kolor piksela 6
-	sub $t7, $t0, $t4 #x0 - x
-	add $t8, $t1, $t3 #y0 - y
+	sub $t7, $t0, $t4 #x0 - y
+	add $t8, $t1, $t3 #y0 + x
 	mul $t7, $t7, 3 # *= 3
 	mul $t8, $t8, $s1 # *= wielkość_wiersza
 	add $t7, $t7, $t8
@@ -162,8 +163,8 @@ petla:
 	sb $v0, 1($t7)
 	sb $v0, 2($t7)
 	#Ustaw kolor piksela 7
-	add $t7, $t0, $t4 #x0 - x
-	sub $t8, $t1, $t3 #y0 - y
+	add $t7, $t0, $t4 #x0 + y
+	sub $t8, $t1, $t3 #y0 - x
 	mul $t7, $t7, 3 # *= 3
 	mul $t8, $t8, $s1 # *= wielkość_wiersza
 	add $t7, $t7, $t8
@@ -173,8 +174,8 @@ petla:
 	sb $v0, 1($t7)
 	sb $v0, 2($t7)
 	#Ustaw kolor piksela 8
-	add $t7, $t0, $t4 #x0 - x
-	add $t8, $t1, $t3 #y0 - y
+	add $t7, $t0, $t4 #x0 + y
+	add $t8, $t1, $t3 #y0 + x
 	mul $t7, $t7, 3 # *= 3
 	mul $t8, $t8, $s1 # *= wielkość_wiersza
 	add $t7, $t7, $t8
@@ -183,7 +184,7 @@ petla:
 	sb $v0, ($t7)
 	sb $v0, 1($t7)
 	sb $v0, 2($t7)
-	#Kolorów pikseli ustawione
+	#Kolory pikseli ustawione
 	
 	bgtz $t2, d0		# d > 0   idź to d0
 	# d <= 0
@@ -203,15 +204,15 @@ dalej:
 	b petla			#Skocz do następnego kroku
 koniec:
 #Zapisz resztę pliku
-	li $v0, 15		#Numer syscall do zapisu do pliku
+	li $v0, 15		#zapis 
 	add $a0, $s3, $zero	#Skopiowanie wskaźnika na plik
 	add $a1, $s2, $zero	#Skopiowanie adresu bufora
 	add $a2, $s4, $zero	#Skopiowanie ilości pikseli obrazka
 	syscall
 #Zamknij plik
-	li $v0, 16		#Numer syscall do zamknięcia pliku
+	li $v0, 16		
 	add $a0, $s3, $zero	#Skopiowanie wskaźnika na plik
 	syscall
 #Zakończ program
-	li $v0, 10		#Numer syscall do zakończenia programu
+	li $v0, 10		
 	syscall
