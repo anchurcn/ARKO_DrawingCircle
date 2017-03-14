@@ -1,2 +1,2 @@
 # MIPS
-MIPS project - creating a circle
+Drawing circle in assembler using Bresenham algorithm and MARS simulator.
