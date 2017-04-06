@@ -83,13 +83,15 @@
 	add $t0, $s5, $zero 	#coordinate X of circle center (X0) - equal to radius
 	move $t1, $t0		#coordinate Y of circle center (Y0) - equal to radius
 	li $t2, 5		#5
-	mul $t3, $s5, 4		#4*r
+	sll $t3,$s5,2		#4*r
 	sub $t2, $t2, $t3	#d = 5 - 4*r	
 	li $t3, 0		#coordinate X - actual
 	move $t4, $t0		#coordinate Y - actual
-	mul $t5, $t4, -2 	#deltaA = -2*r
+	
+	sll $t5,$t4,1	 	#deltaA = -2*r
+	sub $t5,$t3,$t5
 	addi $t5, $t5, 5	#deltaA = 5 + deltaA = (5-2*r)
-	mul $t5, $t5, 4		#deltaA = deltaA * r = (5-2*r) * 4
+	sll $t5,$t5,2		#deltaA = deltaA * r = (5-2*r) * 4
 	li $t6, 12		#deltaB = 12
 
 loop:
